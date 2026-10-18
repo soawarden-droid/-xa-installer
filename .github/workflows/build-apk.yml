@@ -3,8 +3,10 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
+
 permissions:
   contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -24,33 +26,22 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
-      - run: gradle --no-daemon :app:assembleDebug
+      - name: Build APK
+        run: gradle --no-daemon :app:assembleDebug
       - name: Prepare direct-download APK
         run: cp app/build/outputs/apk/debug/app-debug.apk XA-v1.0.0-debug.apk
-      - name: Publish APK to GitHub Releases
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh release create "xa-latest" XA-v1.0.0-debug.apk \
-            --title "XA Installer — Latest Test Build" \
-            --notes "Experimental debug APK. Android 8+; device installation is not yet verified." \
-            --prerelease --latest=false || \
-          gh release upload "xa-latest" XA-v1.0.0-debug.apk --clobber
-      - uses: actions/upload-artifact@v4
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
         with:
           name: XA-v1.0.0-debug
-          path: app/build/outputs/apk/debug/app-debug.apk
+          path: XA-v1.0.0-debug.apk
           if-no-files-found: error
-      - name: Prepare directly downloadable APK
-        run: |
-          mkdir -p release
-          cp app/build/outputs/apk/debug/app-debug.apk release/XA-v1.0.0-debug.apk
-      - name: Publish APK to GitHub Releases
+      - name: Publish direct APK release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "xa-build-${GITHUB_RUN_NUMBER}" release/XA-v1.0.0-debug.apk \
-            --title "XA Installer • Build ${GITHUB_RUN_NUMBER}" \
-            --notes "Experimental debug APK built automatically from main. Android installation confirmation is required. Not a signed production release." \
+          gh release create "xa-build-${GITHUB_RUN_NUMBER}" XA-v1.0.0-debug.apk \
+            --title "XA Installer - Build ${GITHUB_RUN_NUMBER}" \
+            --notes "Experimental Android debug APK. Not yet device tested." \
             --target "${GITHUB_SHA}" \
             --latest
