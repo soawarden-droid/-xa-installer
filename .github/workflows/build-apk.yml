@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
 permissions:
-  contents: read
+  contents: write
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -25,6 +25,17 @@ jobs:
         with:
           gradle-version: '8.9'
       - run: gradle --no-daemon :app:assembleDebug
+      - name: Prepare direct-download APK
+        run: cp app/build/outputs/apk/debug/app-debug.apk XA-v1.0.0-debug.apk
+      - name: Publish APK to GitHub Releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "xa-latest" XA-v1.0.0-debug.apk \
+            --title "XA Installer — Latest Test Build" \
+            --notes "Experimental debug APK. Android 8+; device installation is not yet verified." \
+            --prerelease --latest=false || \
+          gh release upload "xa-latest" XA-v1.0.0-debug.apk --clobber
       - uses: actions/upload-artifact@v4
         with:
           name: XA-v1.0.0-debug
